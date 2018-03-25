@@ -4,10 +4,13 @@ from grove.pyqaoa.qaoa import QAOA
 from pyquil.paulis import PauliTerm, PauliSum
 import scipy.optimize
 import TSP_utilities
-
+import pdb
 
 def solve_tsp(nodes_array):
+    nodes_array = np.array([[0, 0], [0, 1]])
     qvm = api.QVMConnection()
+
+
     number_of_qubits = get_number_of_qubits(len(nodes_array))
     steps = 1
 
@@ -29,20 +32,23 @@ def solve_tsp(nodes_array):
                      minimizer_kwargs=minimizer_kwargs,
                      vqe_options=vqe_option)
 
-    betas, gammas = qaoa_inst.get_angles()
+    # betas, gammas = qaoa_inst.get_angles()
+    betas = np.array([2.7])
+    gammas = np.array([1.0])
     probs = qaoa_inst.probabilities(np.hstack((betas, gammas)))
+    visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits)
 
     print("Most frequent bitstring from sampling")
     most_freq_string, sampling_results = qaoa_inst.get_string(betas, gammas, samples=10000)
-    [print(el) for el in sampling_results.most_common()[:10]]
-
+    # [print(el) for el in sampling_results.most_common()[:10]]
+    pdb.set_trace()
     quantum_order = TSP_utilities.binary_state_to_points_order_full(most_freq_string)
     return quantum_order
 
 
 def create_cost_operators(nodes_array):
     cost_operators = []
-    cost_operators += create_weights_cost_operators(nodes_array)
+    # cost_operators += create_weights_cost_operators(nodes_array)
     cost_operators += create_penalty_operators_for_bilocation(nodes_array)
     cost_operators += create_penalty_operators_for_repetition(nodes_array)
     return cost_operators
@@ -88,19 +94,21 @@ def create_penalty_operators_for_repetition(nodes_array):
 def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
     cost_operators = []
     tsp_matrix = TSP_utilities.get_tsp_matrix(nodes_array)
-    weight = 100 * np.max(tsp_matrix)
+    weight = -10 * np.max(tsp_matrix)
     for i in range_of_qubits:
         if i == range_of_qubits[0]:
             z_term = PauliTerm("Z", i, weight)
             all_ones_term = PauliTerm("I", 0, 0.5 * weight) - PauliTerm("Z", i, 0.5 * weight)
         else:
-            z_term = z_term * PauliTerm("Z", i, weight)
-            all_ones_term = all_ones_term * (PauliTerm("I", 0, 0.5 * weight) - PauliTerm("Z", i, 0.5 * weight))
+            z_term = z_term * PauliTerm("Z", i)
+            all_ones_term = all_ones_term * (PauliTerm("I", 0, 0.5) - PauliTerm("Z", i, 0.5))
 
     z_term = PauliSum([z_term])
+    print(z_term)
     # Value 10 here doesn't have some mathematical justification.
     # It just works.
-    cost_operators.append(z_term + 10 * all_ones_term)
+    # cost_operators.append(z_term + 10 * all_ones_term)
+    cost_operators.append(z_term)
 
     return cost_operators
 
