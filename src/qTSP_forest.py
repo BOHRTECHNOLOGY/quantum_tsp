@@ -26,17 +26,24 @@ def solve_tsp(nodes_array):
     vqe_option = {'disp': print_fun, 'return_all': True,
                   'samples': None}
 
+    init_gammas = np.array([1.0])
     qaoa_inst = QAOA(qvm, number_of_qubits, steps=steps, cost_ham=cost_operators,
                      ref_hamiltonian=driver_operators, store_basis=True,
                      minimizer=scipy.optimize.minimize,
                      minimizer_kwargs=minimizer_kwargs,
-                     vqe_options=vqe_option)
+                     vqe_options=vqe_option,
+                     init_gammas=init_gammas)
 
     # betas, gammas = qaoa_inst.get_angles()
     betas = np.array([2.7])
+    # For 2 nodes, z_term only, weight = 0.5
+    betas = np.array([1.0])
     gammas = np.array([1.0])
+
+    print("BETAS", betas)
+    print("GAMMAS", gammas)
     probs = qaoa_inst.probabilities(np.hstack((betas, gammas)))
-    visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits)
+    visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas)
 
     print("Most frequent bitstring from sampling")
     most_freq_string, sampling_results = qaoa_inst.get_string(betas, gammas, samples=10000)
@@ -94,7 +101,8 @@ def create_penalty_operators_for_repetition(nodes_array):
 def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
     cost_operators = []
     tsp_matrix = TSP_utilities.get_tsp_matrix(nodes_array)
-    weight = -10 * np.max(tsp_matrix)
+    # weight = -10 * np.max(tsp_matrix)
+    weight = -0.5
     for i in range_of_qubits:
         if i == range_of_qubits[0]:
             z_term = PauliTerm("Z", i, weight)
@@ -105,10 +113,11 @@ def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
 
     z_term = PauliSum([z_term])
     print(z_term)
-    # Value 10 here doesn't have some mathematical justification.
-    # It just works.
-    # cost_operators.append(z_term + 10 * all_ones_term)
-    cost_operators.append(z_term)
+    # print(all_ones_term)
+    # Not sure what's the mathematical justification for the value of 2
+    # But it works consistently.
+    # cost_operators.append(z_term + 2 * all_ones_term)
+    cost_operators.append(PauliTerm("I", 0, weight) - z_term)
 
     return cost_operators
 
@@ -145,9 +154,12 @@ def visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas=np
     costs = np.diag(final_matrix)
     pure_costs = np.real(np.round(-np.log(costs)*1j,3))
     for i in range(2**number_of_qubits):
-        print(np.binary_repr(i, width=number_of_qubits), pure_costs[i])
+        print(np.binary_repr(i, width=number_of_qubits), pure_costs[i], np.round(costs[i],3))
     most_freq_string, sampling_results = qaoa_inst.get_string(gammas, gammas, samples=100000)
+    print("Most common results")
     [print(el) for el in sampling_results.most_common()[:10]]
+    print("Least common results")
+    [print(el) for el in sampling_results.most_common()[-10:]]
     pdb.set_trace()
 
 if __name__ == '__main__':
