@@ -122,5 +122,25 @@ def get_number_of_qubits(n):
     return n**2
 
 
+def visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas=np.array([1.0])):
+    from referenceqvm.api import QVMConnection as debug_QVMConnectiont
+    debug_qvm = debug_QVMConnectiont(type_trans='unitary')
+    param_prog, cost_param_programs = qaoa_inst.get_parameterized_program()
+    import pyquil.quil as pq
+    final_cost_prog = pq.Program()
+
+    for prog in cost_param_programs:
+        for exp_map in prog:
+            final_cost_prog += exp_map(gammas[0])
+
+    final_matrix = debug_qvm.unitary(final_cost_prog)
+    costs = np.diag(final_matrix)
+    pure_costs = np.real(np.round(-np.log(costs)*1j,3))
+    for i in range(2**number_of_qubits):
+        print(np.binary_repr(i, width=number_of_qubits), pure_costs[i])
+    most_freq_string, sampling_results = qaoa_inst.get_string(gammas, gammas, samples=100000)
+    [print(el) for el in sampling_results.most_common()[:10]]
+    pdb.set_trace()
+
 if __name__ == '__main__':
     solve_tsp(np.array([[0, 0], [0, 7], [0, 14]]))
