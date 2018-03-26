@@ -12,7 +12,7 @@ def solve_tsp(nodes_array):
 
 
     number_of_qubits = get_number_of_qubits(len(nodes_array))
-    steps = 1
+    steps = 3
 
     cost_operators = []
     cost_operators += create_cost_operators(nodes_array)
@@ -26,16 +26,15 @@ def solve_tsp(nodes_array):
     vqe_option = {'disp': print_fun, 'return_all': True,
                   'samples': None}
 
-    init_gammas = np.array([1.0])
+    # init_gammas = np.array([1.0])
     qaoa_inst = QAOA(qvm, number_of_qubits, steps=steps, cost_ham=cost_operators,
                      ref_hamiltonian=driver_operators, store_basis=True,
                      minimizer=scipy.optimize.minimize,
                      minimizer_kwargs=minimizer_kwargs,
-                     vqe_options=vqe_option,
-                     init_gammas=init_gammas)
+                     vqe_options=vqe_option)
 
-    # betas, gammas = qaoa_inst.get_angles()
     betas = np.array([2.7])
+    betas, gammas = qaoa_inst.get_angles()
     # For 2 nodes, z_term only, weight = 0.5
     betas = np.array([1.0])
     gammas = np.array([1.0])
@@ -43,7 +42,7 @@ def solve_tsp(nodes_array):
     print("BETAS", betas)
     print("GAMMAS", gammas)
     probs = qaoa_inst.probabilities(np.hstack((betas, gammas)))
-    visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas)
+    visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas, steps=steps)
 
     print("Most frequent bitstring from sampling")
     most_freq_string, sampling_results = qaoa_inst.get_string(betas, gammas, samples=10000)
@@ -102,7 +101,7 @@ def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
     cost_operators = []
     tsp_matrix = TSP_utilities.get_tsp_matrix(nodes_array)
     # weight = -10 * np.max(tsp_matrix)
-    weight = -0.5
+    weight = 0.5
     for i in range_of_qubits:
         if i == range_of_qubits[0]:
             z_term = PauliTerm("Z", i, weight)
@@ -113,7 +112,6 @@ def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
 
     z_term = PauliSum([z_term])
     print(z_term)
-    # print(all_ones_term)
     # Not sure what's the mathematical justification for the value of 2
     # But it works consistently.
     # cost_operators.append(z_term + 2 * all_ones_term)
@@ -139,16 +137,20 @@ def get_number_of_qubits(n):
     return n**2
 
 
-def visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas=np.array([1.0])):
+def visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas=np.array([1.0]), steps=1):
     from referenceqvm.api import QVMConnection as debug_QVMConnectiont
     debug_qvm = debug_QVMConnectiont(type_trans='unitary')
     param_prog, cost_param_programs = qaoa_inst.get_parameterized_program()
     import pyquil.quil as pq
     final_cost_prog = pq.Program()
 
-    for prog in cost_param_programs:
-        for exp_map in prog:
-            final_cost_prog += exp_map(gammas[0])
+    for idx in range(steps):
+        for fprog in cost_param_programs[idx]:
+            final_cost_prog += fprog(gammas[idx])
+
+    # for prog in cost_param_programs:
+    #     for exp_map in prog:
+    #         final_cost_prog += exp_map(gammas[0])
 
     final_matrix = debug_qvm.unitary(final_cost_prog)
     costs = np.diag(final_matrix)
