@@ -1,6 +1,6 @@
 import time
 import TSP_utilities
-import qTSP_forest
+from forest_tsp_solver import ForestTSPSolver
 
 def main():
     # seed = 5406
@@ -17,7 +17,8 @@ def main():
 
     print("QAOA solution - Forest")
     start_time = time.time()
-    forest_solution = qTSP_forest.solve_tsp(nodes_array)
+    forest_solver = ForestTSPSolver(nodes_array)
+    forest_solution = forest_solver.solve_tsp()
     end_time = time.time()
     calculation_time = end_time - start_time
     print("Calculation time:", calculation_time)
