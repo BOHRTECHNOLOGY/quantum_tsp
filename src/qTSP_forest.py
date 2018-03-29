@@ -7,7 +7,6 @@ import TSP_utilities
 import pdb
 
 def solve_tsp(nodes_array):
-    nodes_array = np.array([[0, 0], [0, 1]])
     qvm = api.QVMConnection()
 
 
@@ -20,7 +19,7 @@ def solve_tsp(nodes_array):
     driver_operators = create_driver_operators(number_of_qubits)
 
     minimizer_kwargs = {'method': 'Nelder-Mead',
-                            'options': {'ftol': 1.0e-2, 'xtol': 1.0e-2,
+                            'options': {'ftol': 1.0e-4, 'xtol': 1.0e-4,
                                         'disp': False}}
 
     vqe_option = {'disp': print_fun, 'return_all': True,
@@ -33,14 +32,8 @@ def solve_tsp(nodes_array):
                      minimizer_kwargs=minimizer_kwargs,
                      vqe_options=vqe_option)
 
-    betas = np.array([2.7])
     betas, gammas = qaoa_inst.get_angles()
-    # For 2 nodes, z_term only, weight = 0.5
-    betas = np.array([1.0])
-    gammas = np.array([1.0])
 
-    print("BETAS", betas)
-    print("GAMMAS", gammas)
     probs = qaoa_inst.probabilities(np.hstack((betas, gammas)))
     visualize_cost_matrix(qaoa_inst, cost_operators, number_of_qubits, gammas, steps=steps)
 
@@ -111,11 +104,8 @@ def create_penalty_operators_for_qubit_range(nodes_array, range_of_qubits):
             all_ones_term = all_ones_term * (PauliTerm("I", 0, 0.5) - PauliTerm("Z", i, 0.5))
 
     z_term = PauliSum([z_term])
-    print(z_term)
-    # Not sure what's the mathematical justification for the value of 2
-    # But it works consistently.
-    # cost_operators.append(z_term + 2 * all_ones_term)
     cost_operators.append(PauliTerm("I", 0, weight) - z_term)
+
 
     return cost_operators
 
