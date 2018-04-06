@@ -13,9 +13,7 @@ def create_nodes_array(N, seed=None):
     nodes_list = []
     for i in range(N):
         nodes_list.append(np.random.rand(2) * 10)
-    # return np.array([[0, 0], [0, 7], [0, 14]])
-    return np.array([[0, 0], [0, 5], [6, 4], [3, 1]])
-    # return np.array(nodes_list)
+    return np.array(nodes_list)
 
 
 def get_tsp_matrix(nodes_array):

@@ -3,28 +3,23 @@ import numpy as np
 from grove.pyqaoa.qaoa import QAOA
 from pyquil.paulis import PauliTerm, PauliSum
 import scipy.optimize
-import TSP_utilities
+from . import TSP_utilities
 import pdb
 
 class ForestTSPSolver(object):
     """docstring for TSPSolver"""
-    def __init__(self, nodes_array, steps=3, ftol=1.0e-4, xtol=1.0e-4):
+    def __init__(self, nodes_array, steps=3, ftol=1.0e-4, xtol=1.0e-4, all_ones_coefficient=-2):
         self.nodes_array = nodes_array
         self.qvm = api.QVMConnection()
-        self.steps = 3
+        self.steps = steps
         self.ftol = ftol
         self.xtol = xtol
         self.betas = None
         self.gammas = None
         self.qaoa_inst = None
         self.most_freq_string = None
-        
-    def solve_tsp(self):
-        self.find_angles()
-        return self.get_solution()
-
-    def find_angles(self):
         self.number_of_qubits = self.get_number_of_qubits()
+        self.all_ones_coefficient = all_ones_coefficient
 
         cost_operators = self.create_cost_operators()
         driver_operators = self.create_driver_operators()
@@ -41,18 +36,23 @@ class ForestTSPSolver(object):
                          minimizer=scipy.optimize.minimize,
                          minimizer_kwargs=minimizer_kwargs,
                          vqe_options=vqe_option)
+        
+    def solve_tsp(self):
+        self.find_angles()
+        return self.get_solution()
 
+    def find_angles(self):
         self.betas, self.gammas = self.qaoa_inst.get_angles()
+        return self.betas, self.gammas
 
     def get_results(self):
-        print("Most frequent bitstring from sampling")
         most_freq_string, sampling_results = self.qaoa_inst.get_string(self.betas, self.gammas, samples=10000)
         self.most_freq_string = most_freq_string
-        return sampling_results
+        return sampling_results.most_common()
 
     def get_solution(self):
         if self.most_freq_string is None:
-            self.most_freq_string, _ = self.qaoa_inst.get_string(self.betas, self.gammas, samples=10000)
+            self.most_freq_string, sampling_results = self.qaoa_inst.get_string(self.betas, self.gammas, samples=10000)
         quantum_order = TSP_utilities.binary_state_to_points_order_full(self.most_freq_string)
         return quantum_order
 
@@ -60,7 +60,7 @@ class ForestTSPSolver(object):
         cost_operators = []
         cost_operators += self.create_penalty_operators_for_bilocation()
         cost_operators += self.create_penalty_operators_for_repetition()
-        # cost_operators += create_weights_cost_operators(nodes_array)
+        cost_operators += self.create_weights_cost_operators()
         return cost_operators
 
     def create_penalty_operators_for_bilocation(self):
@@ -84,8 +84,8 @@ class ForestTSPSolver(object):
     def create_penalty_operators_for_qubit_range(self, range_of_qubits):
         cost_operators = []
         tsp_matrix = TSP_utilities.get_tsp_matrix(self.nodes_array)
-        # weight = -10 * np.max(tsp_matrix)
-        weight = 0.5
+        weight = -100 * np.max(tsp_matrix)
+        # weight = -0.5
         for i in range_of_qubits:
             if i == range_of_qubits[0]:
                 z_term = PauliTerm("Z", i, weight)
@@ -95,7 +95,7 @@ class ForestTSPSolver(object):
                 all_ones_term = all_ones_term * (PauliTerm("I", 0, 0.5) - PauliTerm("Z", i, 0.5))
 
         z_term = PauliSum([z_term])
-        cost_operators.append(PauliTerm("I", 0, weight) - z_term)
+        cost_operators.append(PauliTerm("I", 0, weight) - z_term + self.all_ones_coefficient * all_ones_term)
 
         return cost_operators
 
@@ -107,7 +107,7 @@ class ForestTSPSolver(object):
         for i in range(number_of_nodes):
             for j in range(i, number_of_nodes):
                 for t in range(number_of_nodes - 1):
-                    weight = tsp_matrix[i][j] / 2
+                    weight = -tsp_matrix[i][j] / 2
                     if tsp_matrix[i][j] != 0:
                         qubit_1 = t * number_of_nodes + i
                         qubit_2 = (t + 1) * number_of_nodes + j
