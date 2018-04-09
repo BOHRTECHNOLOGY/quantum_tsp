@@ -1,6 +1,6 @@
 # Quantum TSP
 
-This repository contains code for solving Travelling Salesman Problem using quantum computing.
+This repository contains code for an open source program solving the Travelling Salesman Problem with Quantum Computing.
 
 ## Structure
 
@@ -78,4 +78,5 @@ git subtree push --prefix path/to/your/dir/qtsp_subtree qtsp_subtree new-branch
 - QAOA paper: https://arxiv.org/abs/1411.4028
 - Demo from IBM: https://nbviewer.jupyter.org/github/QISKit/qiskit-tutorial/blob/stable/4_applications/classical_optimization.ipynb
 - Rigetti Maxcut paper: https://arxiv.org/pdf/1712.05771.pdf
+
 
