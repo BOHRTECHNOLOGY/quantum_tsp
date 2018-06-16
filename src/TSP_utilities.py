@@ -1,11 +1,12 @@
 import numpy as np
 import itertools
-# This funny way of using matplotlib is due to my problems with _tkinter
-# https://stackoverflow.com/a/4935945/3021669
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 def create_nodes_array(N, seed=None):
+    """
+    Creates array of random points of size N.
+    """
     if seed:
         print("seed", seed)
         np.random.seed(seed)
@@ -17,6 +18,9 @@ def create_nodes_array(N, seed=None):
 
 
 def get_tsp_matrix(nodes_array):
+    """
+    Creates distance matrix out of given coordinates.
+    """
     number_of_nodes = len(nodes_array)
     matrix = np.zeros((number_of_nodes, number_of_nodes))
     for i in range(number_of_nodes):
@@ -32,9 +36,8 @@ def distance_between_points(point_A, point_B):
 
 def solve_tsp_brute_force(nodes_array):
     number_of_nodes = len(nodes_array)
-    # We start this permutation from 1, not 0, since we always want to start from 0
-    initial_order = range(1, number_of_nodes)
-    all_permutations = [[0] + list(x) for x in itertools.permutations(initial_order)]
+    initial_order = range(0, number_of_nodes)
+    all_permutations = [list(x) for x in itertools.permutations(initial_order)]
     cost_matrix = get_tsp_matrix(nodes_array)
     best_permutation = all_permutations[0]
     best_cost = calculate_cost(cost_matrix, all_permutations[0])
@@ -43,8 +46,25 @@ def solve_tsp_brute_force(nodes_array):
         if current_cost < best_cost:
             best_permutation = permutation
             best_cost = current_cost
+    print("Brute force:", best_permutation, best_cost)
+    return best_permutation
 
-    print(best_permutation, best_cost)
+
+def solve_tsp_brute_force_from_given_node(nodes_array, starting_node):
+    number_of_nodes = len(nodes_array)
+    initial_order = range(0, number_of_nodes)
+    all_permutations = [list(x) for x in itertools.permutations(initial_order)]
+    cost_matrix = get_tsp_matrix(nodes_array)
+    best_permutation = all_permutations[0]
+    best_cost = calculate_cost(cost_matrix, all_permutations[0])*1000
+    for permutation in all_permutations:
+        if permutation[0] != starting_node:
+            continue
+        current_cost = calculate_cost(cost_matrix, permutation)
+        if current_cost < best_cost:
+            best_permutation = permutation
+            best_cost = current_cost
+    print("Brute force:", best_permutation, best_cost)
     return best_permutation
 
 
@@ -74,18 +94,11 @@ def plot_solution(name, nodes_array, solution):
     plt.savefig(name + '.png')
     plt.clf()
 
-
-def binary_state_to_points_order(binary_state):
-    points_order = [0]
-    number_of_points = int(np.sqrt(len(binary_state)) + 1)
-    for p in range(number_of_points - 1):
-        for j in range(number_of_points - 1):
-            if binary_state[(number_of_points - 1) * p + j] == 1:
-                points_order.append(j + 1)
-    return points_order
-
-
 def points_order_to_binary_state(points_order):
+    """
+    Transforms the order of points from the standard representation: [0, 1, 2],
+    to the binary one: [1,0,0,0,1,0,0,0,1]
+    """
     number_of_points = len(points_order)
     binary_state = np.zeros((len(points_order) - 1)**2)
     for j in range(1, len(points_order)):
@@ -93,7 +106,11 @@ def points_order_to_binary_state(points_order):
         binary_state[(number_of_points - 1) * (j - 1) + (p - 1)] = 1
     return binary_state
 
-def binary_state_to_points_order_full(binary_state):
+def binary_state_to_points_order(binary_state):
+    """
+    Transforms the the order of points from the binary representation: [1,0,0,0,1,0,0,0,1],
+    to the binary one: [0, 1, 2]
+    """
     points_order = []
     number_of_points = int(np.sqrt(len(binary_state)))
     for p in range(number_of_points):
