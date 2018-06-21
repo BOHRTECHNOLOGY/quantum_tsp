@@ -1,6 +1,5 @@
 import numpy as np
 import itertools
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 def create_nodes_array(N, seed=None):

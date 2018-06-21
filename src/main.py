@@ -17,7 +17,7 @@ def main():
     print("QAOA solution - Forest")
     start_time = time.time()
     forest_solver = ForestTSPSolver(nodes_array, starting_node=starting_node)
-    forest_solution = forest_solver.solve_tsp()
+    forest_solution, forest_distribution = forest_solver.solve_tsp()
     end_time = time.time()
     calculation_time = end_time - start_time
     print("Calculation time:", calculation_time)

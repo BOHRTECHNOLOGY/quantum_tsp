@@ -33,6 +33,8 @@ class ForestTSPSolver(object):
         self.gammas = None
         self.qaoa_inst = None
         self.number_of_qubits = self.get_number_of_qubits()
+        self.solution = None
+        self.distribution = None
 
         cost_operators = self.create_phase_separator()
         driver_operators = self.create_mixer()
@@ -57,7 +59,8 @@ class ForestTSPSolver(object):
         and returns a list containing the order of nodes.
         """
         self.find_angles()
-        return self.get_solution()
+        self.calculate_solution()
+        return self.solution, self.distribution
 
     def find_angles(self):
         """
@@ -66,7 +69,7 @@ class ForestTSPSolver(object):
         self.betas, self.gammas = self.qaoa_inst.get_angles()
         return self.betas, self.gammas
 
-    def get_solution(self):
+    def calculate_solution(self):
         """
         Samples the QVM for the results of the algorithm 
         and returns a list containing the order of nodes.
@@ -74,7 +77,15 @@ class ForestTSPSolver(object):
         most_frequent_string, sampling_results = self.qaoa_inst.get_string(self.betas, self.gammas, samples=10000)
         reduced_solution = TSP_utilities.binary_state_to_points_order(most_frequent_string)
         full_solution = self.get_solution_for_full_array(reduced_solution)
-        return full_solution
+        self.solution = full_solution
+        
+        all_solutions = sampling_results.keys()
+        distribution = {}
+        for sol in all_solutions:
+            reduced_sol = TSP_utilities.binary_state_to_points_order(sol)
+            full_sol = self.get_solution_for_full_array(reduced_sol)
+            distribution[tuple(full_sol)] = sampling_results[sol]
+        self.distribution = distribution
 
     def reduce_nodes_array(self, full_nodes_array, starting_node):
         """
