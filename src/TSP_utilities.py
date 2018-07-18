@@ -69,8 +69,11 @@ def solve_tsp_brute_force_from_given_node(nodes_array, starting_node):
 
 def calculate_cost(cost_matrix, solution):
     cost = 0
-    for i in range(len(solution) - 1):
-        cost += cost_matrix[solution[i]][solution[i + 1]]
+    for i in range(len(solution)):
+        a = i%len(solution)
+        b = (i+1)%len(solution)
+        cost += cost_matrix[solution[a]][solution[b]]
+
     return cost
 
 
@@ -81,9 +84,11 @@ def plot_solution(name, nodes_array, solution):
 
     plt.xlim([min(nodes_array[:, 0]) - 1, max(nodes_array[:, 0]) + 1])
     plt.ylim([min(nodes_array[:, 1]) - 1, max(nodes_array[:, 1]) + 1])
-    for i in range(len(solution) - 1):
-        A = solution[i]
-        B = solution[i + 1]
+    for i in range(len(solution)):
+        a = i%len(solution)
+        b = (i+1)%len(solution)
+        A = solution[a]
+        B = solution[b]
         plt.plot([nodes_array[A, 0], nodes_array[B, 0]], [nodes_array[A, 1], nodes_array[B, 1]], c='r')
 
     cost = calculate_cost(get_tsp_matrix(nodes_array), solution)
