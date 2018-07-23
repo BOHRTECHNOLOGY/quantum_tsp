@@ -50,7 +50,7 @@ git subtree add --prefix path/to/your/dir/qtsp_subtree qtsp_subtree master --squ
 or:
 
 ```bash
-git subtree add --prefix path/to/your/dir/qtsp_subtree qtsp_subtree master --squash
+git subtree add --prefix path/to/your/dir/qtsp_subtree git@github.com:BOHRTECHNOLOGY/quantum_tsp.git master --squash
 ```
 
 `path/to/your/dir/qtsp_subtree` should be the path from the top directory of the repository you are in. It automatically generates a new commit.

@@ -18,13 +18,12 @@ class ForestTSPSolver(object):
     https://arxiv.org/pdf/1709.03489.pdf by Stuart Hadfield et al.
     
     """
-    def __init__(self, full_nodes_array, steps=2, ftol=1.0e-3, xtol=1.0e-3, initial_state="all", starting_node=0):
-        reduced_nodes_array, costs_to_starting_node = self.reduce_nodes_array(full_nodes_array, starting_node)
+    def __init__(self, distance_matrix, steps=2, ftol=1.0e-3, xtol=1.0e-3, initial_state="all", starting_node=0):
 
-        self.nodes_array = reduced_nodes_array
+        self.distance_matrix = distance_matrix
         self.starting_node = starting_node
-        self.full_nodes_array = full_nodes_array
-        self.costs_to_starting_node = costs_to_starting_node
+        # Since we fixed the starting city, the effective number of nodes is smaller by 1
+        self.reduced_number_of_nodes = len(self.distance_matrix) - 1
         self.qvm = api.QVMConnection()
         self.steps = steps
         self.ftol = ftol
@@ -87,18 +86,6 @@ class ForestTSPSolver(object):
             distribution[tuple(full_sol)] = sampling_results[sol]
         self.distribution = distribution
 
-    def reduce_nodes_array(self, full_nodes_array, starting_node):
-        """
-        Creates an array of points which exclude the starting one.
-        Returns:
-        reduced_nodes_array: the reduced array of points without the starting point
-        costs_to_starting_node: array with distances from the starting node to points (ordered in the "reduced base")
-        """
-        reduced_nodes_array = np.delete(full_nodes_array, starting_node, 0)
-        tsp_matrix = TSP_utilities.get_tsp_matrix(full_nodes_array)
-        costs_to_starting_node = np.delete(tsp_matrix[:, starting_node], starting_node)
-        return reduced_nodes_array, costs_to_starting_node
-
     def get_solution_for_full_array(self, reduced_solution):
         """
         Transforms the solution from its reduced version to the full initial version.
@@ -115,20 +102,29 @@ class ForestTSPSolver(object):
         Creates phase-separation operators, which depend on the objective function.
         """
         cost_operators = []
-        for t in range(len(self.nodes_array) - 1):
-            for city_1 in range(len(self.nodes_array)):
-                for city_2 in range(len(self.nodes_array)):
+        reduced_distance_matrix = np.delete(self.distance_matrix, self.starting_node, axis=0)
+        reduced_distance_matrix = np.delete(reduced_distance_matrix, self.starting_node, axis=1)
+        for t in range(self.reduced_number_of_nodes - 1):
+            for city_1 in range(self.reduced_number_of_nodes):
+                for city_2 in range(self.reduced_number_of_nodes):
                     if city_1 != city_2:
-                        tsp_matrix = TSP_utilities.get_tsp_matrix(self.nodes_array)
-                        distance = tsp_matrix[city_1, city_2]
-                        qubit_1 = t * len(self.nodes_array) + city_1
-                        qubit_2 = (t + 1) * len(self.nodes_array) + city_2
+                        distance = reduced_distance_matrix[city_1, city_2]
+                        qubit_1 = t * (self.reduced_number_of_nodes) + city_1
+                        qubit_2 = (t + 1) * (self.reduced_number_of_nodes) + city_2
                         cost_operators.append(PauliTerm("Z", qubit_1, distance) * PauliTerm("Z", qubit_2))
 
-        for city in range(len(self.costs_to_starting_node)):
-            distance_from_0 = -self.costs_to_starting_node[city]
+        costs_to_starting_node = np.delete(self.distance_matrix[:, self.starting_node], self.starting_node)
+
+        for city in range(self.reduced_number_of_nodes):
+            distance_from_0 = -costs_to_starting_node[city]
             qubit = city
             cost_operators.append(PauliTerm("Z", qubit, distance_from_0))
+
+        for city in range(self.reduced_number_of_nodes):
+            distance_from_0 = -costs_to_starting_node[city]
+            qubit = self.number_of_qubits - (self.reduced_number_of_nodes) + city
+            cost_operators.append(PauliTerm("Z", qubit, distance_from_0))
+ 
 
         phase_separator = [PauliSum(cost_operators)]
         return phase_separator
@@ -141,10 +137,9 @@ class ForestTSPSolver(object):
         """
         mixer_operators = []
 
-        n = len(self.nodes_array)
-        for t in range(n - 1):
-            for city_1 in range(n):
-                for city_2 in range(n):
+        for t in range(self.reduced_number_of_nodes - 1):
+            for city_1 in range(self.reduced_number_of_nodes):
+                for city_2 in range(self.reduced_number_of_nodes):
                     i = t
                     u = city_1
                     v = city_2
@@ -170,34 +165,33 @@ class ForestTSPSolver(object):
         of all possible states for this problem.
         """
         initial_state_program = pq.Program()
-        number_of_nodes = len(self.nodes_array)
         if type(initial_state) is list:
-            for i in range(number_of_nodes):
-                initial_state_program.inst(X(i * number_of_nodes + initial_state[i]))
+            for i in range(self.reduced_number_of_nodes):
+                initial_state_program.inst(X(i * (self.reduced_number_of_nodes) + initial_state[i]))
 
         elif initial_state == "all":
             vector_of_states = np.zeros(2**self.number_of_qubits)
             list_of_possible_states = []
-            initial_order = range(0, number_of_nodes)
+            initial_order = range(0, self.reduced_number_of_nodes)
             all_permutations = [list(x) for x in itertools.permutations(initial_order)]
             for permutation in all_permutations:
                 coding_of_permutation = 0
                 for i in range(len(permutation)):
-                    coding_of_permutation += 2**(i * number_of_nodes + permutation[i])
+                    coding_of_permutation += 2**(i * (self.reduced_number_of_nodes) + permutation[i])
                 vector_of_states[coding_of_permutation] = 1
             initial_state_program = create_arbitrary_state(vector_of_states)
 
         return initial_state_program
 
     def get_number_of_qubits(self):
-        return len(self.nodes_array)**2
+        return (self.reduced_number_of_nodes)**2
 
     def s_plus(self, city, time):
-        qubit = time * len(self.nodes_array) + city
+        qubit = time * (self.reduced_number_of_nodes) + city
         return PauliTerm("X", qubit) + PauliTerm("Y", qubit, 1j)
 
     def s_minus(self, city, time):
-        qubit = time * len(self.nodes_array) + city
+        qubit = time * (self.reduced_number_of_nodes) + city
         return PauliTerm("X", qubit) - PauliTerm("Y", qubit, 1j)
 
 
