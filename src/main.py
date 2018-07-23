@@ -23,6 +23,10 @@ def main():
     end_time = time.time()
     calculation_time = end_time - start_time
     print("Calculation time:", calculation_time)
+    costs = [(sol, TSP_utilities.calculate_cost(tsp_matrix, sol), forest_distribution[sol]) for sol in forest_distribution]
+    print("Forest:")
+    for cost in costs:
+        print(cost)
     TSP_utilities.plot_solution('forest_' + str(bf_start_time), nodes_array, forest_solution)
 
 

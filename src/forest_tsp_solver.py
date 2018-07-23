@@ -102,17 +102,19 @@ class ForestTSPSolver(object):
         Creates phase-separation operators, which depend on the objective function.
         """
         cost_operators = []
-        # I subtract 2 because costs for the first and the last step will be defined later
+        reduced_distance_matrix = np.delete(self.distance_matrix, self.starting_node, axis=0)
+        reduced_distance_matrix = np.delete(reduced_distance_matrix, self.starting_node, axis=1)
         for t in range(self.reduced_number_of_nodes - 1):
             for city_1 in range(self.reduced_number_of_nodes):
                 for city_2 in range(self.reduced_number_of_nodes):
                     if city_1 != city_2:
-                        distance = self.distance_matrix[city_1, city_2]
+                        distance = reduced_distance_matrix[city_1, city_2]
                         qubit_1 = t * (self.reduced_number_of_nodes) + city_1
                         qubit_2 = (t + 1) * (self.reduced_number_of_nodes) + city_2
                         cost_operators.append(PauliTerm("Z", qubit_1, distance) * PauliTerm("Z", qubit_2))
 
         costs_to_starting_node = np.delete(self.distance_matrix[:, self.starting_node], self.starting_node)
+
         for city in range(self.reduced_number_of_nodes):
             distance_from_0 = -costs_to_starting_node[city]
             qubit = city
