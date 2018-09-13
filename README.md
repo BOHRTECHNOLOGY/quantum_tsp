@@ -28,6 +28,14 @@ Grove is a collection of quantum algorithms built using the Rigetti Forest platf
 
 https://github.com/rigetticomputing/grove
 
+### DWave
+
+DWave is a quantum annealer - another type of quantum computing devices. To use it you need the following library:
+
+    pip install dwave-system
+
+and have your own `sapi-token`. You can obtain it here: https://cloud.dwavesys.com/qubist/apikey/, though I am not sure if anyone is eligible to get it.
+
 
 ## Subtree
 

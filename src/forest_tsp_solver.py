@@ -124,7 +124,6 @@ class ForestTSPSolver(object):
             distance_from_0 = -costs_to_starting_node[city]
             qubit = self.number_of_qubits - (self.reduced_number_of_nodes) + city
             cost_operators.append(PauliTerm("Z", qubit, distance_from_0))
- 
 
         phase_separator = [PauliSum(cost_operators)]
         return phase_separator
