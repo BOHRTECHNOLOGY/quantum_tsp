@@ -46,11 +46,21 @@ class ForestTSPSolver(object):
         vqe_option = {'disp': print_fun, 'return_all': True,
                       'samples': None}
 
-        self.qaoa_inst = QAOA(self.qvm, self.number_of_qubits, steps=self.steps, cost_ham=cost_operators,
-                         ref_hamiltonian=driver_operators, driver_ref=initial_state_program, store_basis=True,
-                         minimizer=scipy.optimize.minimize,
-                         minimizer_kwargs=minimizer_kwargs,
-                         vqe_options=vqe_option)
+        qubits=list(range(self.number_of_qubits));
+
+        self.qaoa_inst = QAOA(self.qvm, 
+                              qubits, 
+                              steps=self.steps, 
+                              init_betas=None, 
+                              init_gammas=None,
+                              cost_ham=cost_operators,
+                              ref_ham=driver_operators, 
+                              driver_ref=initial_state_program,
+                              minimizer=scipy.optimize.minimize,
+                              minimizer_kwargs=minimizer_kwargs,
+                              rand_seed=None,
+                              vqe_options=vqe_option, 
+                              store_basis=True)
         
     def solve_tsp(self):
         """
