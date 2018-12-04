@@ -84,7 +84,7 @@ git subtree push --prefix path/to/your/dir/qtsp_subtree qtsp_subtree new-branch
 ## Sources 
 
 - QAOA paper: https://arxiv.org/abs/1411.4028
-- Demo from IBM: https://nbviewer.jupyter.org/github/QISKit/qiskit-tutorial/blob/stable/4_applications/classical_optimization.ipynb
+- Demo from IBM: https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorial/blob/master/qiskit/aqua/optimization/maxcut_and_tsp.ipynb
 - Rigetti Maxcut paper: https://arxiv.org/pdf/1712.05771.pdf
 
 
