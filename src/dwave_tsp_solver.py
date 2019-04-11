@@ -4,7 +4,7 @@ from dwave.system.composites import EmbeddingComposite   # Library to embed our 
 import itertools
 import scipy.optimize
 import TSP_utilities
-import pdb
+import numpy as np
 
 class DWaveTSPSolver(object):
     """
@@ -13,11 +13,13 @@ class DWaveTSPSolver(object):
     """
     def __init__(self, distance_matrix, sapi_token=None, url=None):
 
-        self.distance_matrix = distance_matrix
-        self.constraint_constant = 1400
-        self.cost_constant = 100
-        self.chainstrength = 4700
-        self.numruns = 100
+        max_distance = np.max(np.array(distance_matrix))
+        scaled_distance_matrix = distance_matrix / max_distance
+        self.distance_matrix = scaled_distance_matrix
+        self.constraint_constant = 400
+        self.cost_constant = 10
+        self.chainstrength = 800
+        self.numruns = 1000
         self.qubo_dict = {}
         self.sapi_token = sapi_token
         self.url = url
@@ -28,51 +30,53 @@ class DWaveTSPSolver(object):
 
     def add_cost_objective(self):
         n = len(self.distance_matrix)
-        for t in range(n-1):
+        for t in range(n):
             for i in range(n):
                 for j in range(n):
                     if i == j:
                         continue
                     qubit_a = t * n + i
-                    qubit_b = (t + 1) * n + j
+                    qubit_b = (t + 1)%n * n + j
                     self.qubo_dict[(qubit_a, qubit_b)] = self.cost_constant * self.distance_matrix[i][j]
 
     def add_time_constraints(self):
         n = len(self.distance_matrix)
         for t in range(n):
             for i in range(n):
+                qubit_a = t * n + i
+                if (qubit_a, qubit_a) not in self.qubo_dict.keys():
+                    self.qubo_dict[(qubit_a, qubit_a)] = -self.constraint_constant
+                else:
+                    self.qubo_dict[(qubit_a, qubit_a)] += -self.constraint_constant
                 for j in range(n):
-                    qubit_a = t * n + i
                     qubit_b = t * n + j
                     if i!=j:
                         self.qubo_dict[(qubit_a, qubit_b)] = 2 * self.constraint_constant
-        for i in range(n**2):
-            self.qubo_dict[(i, i)] = -3 * self.constraint_constant
 
 
     def add_position_constraints(self):
         n = len(self.distance_matrix)
         for i in range(n):
             for t1 in range(n):
+                qubit_a = t1 * n + i
+                if (qubit_a, qubit_a) not in self.qubo_dict.keys():
+                    self.qubo_dict[(qubit_a, qubit_a)] = -self.constraint_constant
+                else:
+                    self.qubo_dict[(qubit_a, qubit_a)] += -self.constraint_constant
                 for t2 in range(n):
-                    qubit_a = t1 * n + i
                     qubit_b = t2 * n + i
                     if t1!=t2:
                         self.qubo_dict[(qubit_a, qubit_b)] = 2 * self.constraint_constant
-        for i in range(n**2):
-            self.qubo_dict[(i, i)] = -3 * self.constraint_constant
+
 
 
     def solve_tsp(self):
-        response = EmbeddingComposite(DWaveSampler(token=self.sapi_token, endpoint=self.url)).sample_qubo(self.qubo_dict, chain_strength=self.chainstrength, num_reads=self.numruns)             
+        response = EmbeddingComposite(DWaveSampler(token=self.sapi_token, endpoint=self.url, solver='DW_2000Q_2_1')).sample_qubo(self.qubo_dict, chain_strength=self.chainstrength, num_reads=self.numruns)             
         self.decode_solution(response)
         return self.solution, self.distribution
 
     def decode_solution(self, response):
         n = len(self.distance_matrix)
-
-        import pdb
-        i = 0
         distribution = {}
         min_energy = response.record[0].energy
 

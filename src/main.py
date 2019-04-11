@@ -21,6 +21,8 @@ def main():
 
     if sapi_token is None or dwave_url is None:
         print("You cannot run code on DWave without specifying your sapi_token and url")
+    elif len(nodes_array) >= 10:
+        print("This problem size is to big to run on D-Wave.")
     else:
         print("DWave solution")
         start_time = time.time()
@@ -30,7 +32,8 @@ def main():
         calculation_time = end_time - start_time
         print("Calculation time:", calculation_time)
         costs = [(sol, TSP_utilities.calculate_cost(tsp_matrix, sol), dwave_distribution[sol]) for sol in dwave_distribution]
-        print("DWave:")
+        solution_cost = TSP_utilities.calculate_cost(tsp_matrix, dwave_solution)
+        print("DWave:", dwave_solution, solution_cost)
         for cost in costs:
             print(cost)
         TSP_utilities.plot_solution('dwave_' + str(bf_start_time), nodes_array, dwave_solution)
