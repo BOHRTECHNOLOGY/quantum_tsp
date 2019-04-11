@@ -36,6 +36,16 @@ DWave is a quantum annealer - another type of quantum computing devices. To use 
 
 and have your own `sapi-token`. You can obtain it here: https://cloud.dwavesys.com/qubist/apikey/, though I am not sure if anyone is eligible to get it.
 
+*Warning!*
+
+There are a couple of things worth knowing when it comes to this version:
+
+1. The biggest number of cities that can be solved on D-Wave 2000Q is 9. The amount of qubits needed to solve the problem grows as N^2 and finding embedding for the case with 10 cities will fail in most (if not all) cases.
+
+2. This implementation doesn't allow you to specify the starting point - it needs some modifications to take this information into account.
+
+3. If you experience any unexpected problems with D-Wave libraries, you might want to install an older version - this script definitely worked with `dwave-system==0.5.1`:
+
 
 ## Subtree
 
