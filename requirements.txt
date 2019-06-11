@@ -1,0 +1,9 @@
+dimod==0.7.9
+dwave-cloud-client==0.4.16
+dwave-networkx==0.6.9
+dwave-qbsolv==0.2.9
+dwave-system==0.5.1
+networkx==2.2
+matplotlib==3.1.0
+quantum-grove==2.0.0b0
+pyquil==2.8.0
